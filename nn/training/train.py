@@ -1,6 +1,7 @@
 import argparse
 import os
 import math
+from re import X
 import sys
 from pathlib import Path
 
@@ -11,7 +12,7 @@ import wandb
 import torch
 import torch.nn as nn
 from nn.models.nn import NN
-from nn.utils import save_nn_checkpoint
+from nn.utils.utils import save_nn_checkpoint
 import torch.optim as optim
 
 
@@ -60,14 +61,40 @@ for idx, dataset in enumerate(sorted(os.listdir(datadir))):
 
     print (idx, dataset, "\tN:", n_tot, "\td:", d, "\tc:", c)
 
-    """ TRAINING THE MODEL """
     # load training and validation set
     fold = list(map(lambda x: list(map(int, x.split())), open(datadir + "/" + dataset + "/" + "conxuntos.dat", "r").readlines()))
     train_fold, val_fold = fold[0], fold[1]
+    
+    dataset_path = os.path.join(datadir, dataset)
+    arff_file = os.path.join(dataset_path, f"{dataset}.arff") # data in the arff file
 
-    X_train = X[]
+    rows = []
+    in_data = False
 
-    print(train_fold)
+    """ LOAD IN THE DATA """
+    with open(arff_file, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("%"):
+                continue
+            if line.lower() == "@data":
+                in_data = True
+                continue
+            if in_data:
+                rows.append(list(map(float, line.split(","))))
+
+    all_data = torch.tensor(rows, dtype=torch.float32)
+
+    X = all_data[:, :-1] # first 6 columns
+    y = all_data[:, -1].long() # last column = class label
+
+    X_train = X[train_fold]
+    y_train = y[train_fold]
+    X_val = X[val_fold]
+    y_val = y[val_fold]
+
+    """ TRAINING THE MODEL """
+
     global_best_lr = 0.0
     global_best_batch_norm = None
     global_best_num_layers = 0
@@ -75,14 +102,14 @@ for idx, dataset in enumerate(sorted(os.listdir(datadir))):
 
     lrs = [0.1, 1]
     batch_norms = [True, False]
-    num_layers = [1, 2, 3, 4, 5]
-    num_epochs = 100
+    num_layers_poss= [1, 2, 3, 4, 5]
+    num_epochs = 500
 
 
     # grid search of parameters
     for lr in lrs:
         for batch_norm in batch_norms:
-            for num_layers in num_layers:
+            for num_layers in num_layers_poss:
                 wandb.init(
                     project="feature-learning-small-datasets",
                     name=f"dataset_{dataset}_lr_{lr}_batch_norm_{batch_norm}_num_layers_{num_layers}",
@@ -97,7 +124,7 @@ for idx, dataset in enumerate(sorted(os.listdir(datadir))):
                     },
                 )
                 model = NN(num_layers, d, 512, c, batch_norm)
-                loss_fn = nn.CrossEntropyLoss()
+                loss_fn = nn.BCEWithLogitsLoss()
                 optimizer = optim.SGD(model.parameters(), lr=lr) # SGD optimizer
                 
                 best_val_loss = float('inf')
@@ -105,15 +132,15 @@ for idx, dataset in enumerate(sorted(os.listdir(datadir))):
 
                 for epoch in range(1, num_epochs + 1):
                     optimizer.zero_grad()
-                    out = model(train_fold)
-                    loss = loss_fn()
+                    out = model(X_train)
+                    loss = loss_fn(out, y_train)
                     loss.backward()
                     optimizer.step()
 
                     train_losses.append(loss.item())
 
-                    val_out = model(val_fold)
-                    val_loss = loss_fn(val_out, val_fold)
+                    val_out = model(X_val)
+                    val_loss = loss_fn(val_out, y_val)
 
                     val_losses.append(val_loss.item())
 
@@ -136,6 +163,14 @@ for idx, dataset in enumerate(sorted(os.listdir(datadir))):
                     global_best_num_layers = num_layers
 
                     save_nn_checkpoint(f"nn/results/dataset_{dataset}/model_weights/lr_{lr}_batch_norm_{batch_norm}_num_layers_{num_layers}.pth", model)
-
                 wandb.finish()
+
+    layer_1_weights = model.model[0].weight.detach().numpy()
+    nfm = compute_nfm(layer_1_weights)
+    agop = compute_agop(layer_1_weights)
+
+    np.save('nn/results/dataset_{dataset}/matrices/nfm.npy', nfm)
+    np.save('nn/results/dataset_{dataset}/matrices/agop.npy', agop)
+
+
 

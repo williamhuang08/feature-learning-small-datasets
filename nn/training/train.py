@@ -1,7 +1,6 @@
 import argparse
 import os
 import math
-from re import X
 import sys
 from pathlib import Path
 
@@ -12,7 +11,9 @@ import wandb
 import torch
 import torch.nn as nn
 from nn.models.nn import NN
-from nn.utils.utils import save_nn_checkpoint
+from nn.models.nfm import compute_nfm
+from nn.models.agop import compute_agop
+from nn.utils.utils import save_nn_checkpoint, load_nn_checkpoint
 import torch.optim as optim
 
 
@@ -103,7 +104,7 @@ for idx, dataset in enumerate(sorted(os.listdir(datadir))):
     lrs = [0.1, 1]
     batch_norms = [True, False]
     num_layers_poss= [1, 2, 3, 4, 5]
-    num_epochs = 500
+    num_epochs = 100
 
 
     # grid search of parameters
@@ -124,7 +125,7 @@ for idx, dataset in enumerate(sorted(os.listdir(datadir))):
                     },
                 )
                 model = NN(num_layers, d, 512, c, batch_norm)
-                loss_fn = nn.BCEWithLogitsLoss()
+                loss_fn = nn.CrossEntropyLoss()
                 optimizer = optim.SGD(model.parameters(), lr=lr) # SGD optimizer
                 
                 best_val_loss = float('inf')
@@ -165,12 +166,21 @@ for idx, dataset in enumerate(sorted(os.listdir(datadir))):
                     save_nn_checkpoint(f"nn/results/dataset_{dataset}/model_weights/lr_{lr}_batch_norm_{batch_norm}_num_layers_{num_layers}.pth", model)
                 wandb.finish()
 
-    layer_1_weights = model.model[0].weight.detach().numpy()
-    nfm = compute_nfm(layer_1_weights)
-    agop = compute_agop(layer_1_weights)
+    best_model = NN(global_best_num_layers, d, 512, c, global_best_batch_norm)
+    ckpt_path = f"nn/results/dataset_{dataset}/model_weights/lr_{global_best_lr}_batch_norm_{global_best_batch_norm}_num_layers_{global_best_num_layers}.pth"
+    load_nn_checkpoint(ckpt_path, best_model)
 
-    np.save('nn/results/dataset_{dataset}/matrices/nfm.npy', nfm)
-    np.save('nn/results/dataset_{dataset}/matrices/agop.npy', agop)
+    layer_1_weights = best_model.model[0].weight.detach().numpy()
+    nfm = compute_nfm(layer_1_weights)
+    print(f"NFM: {nfm}")
+    print(f"NFM shape: {nfm.shape}")
+    agop = compute_agop(best_model, X_val)
+    print(f"AGOP: {agop}")
+    print(f"AGOP shape: {agop.shape}")
+
+    os.makedirs(f"nn/results/dataset_{dataset}/matrices", exist_ok=True)
+    np.save(f"nn/results/dataset_{dataset}/matrices/nfm.npy", nfm)
+    np.save(f"nn/results/dataset_{dataset}/matrices/agop.npy", agop)
 
 
 

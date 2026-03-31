@@ -100,11 +100,12 @@ for idx, dataset in enumerate(sorted(os.listdir(datadir))):
     global_best_batch_norm = None
     global_best_num_layers = 0
     global_best_val_loss = float('inf')
+    global_best_model = None
 
     lrs = [0.1, 1]
     batch_norms = [True, False]
     num_layers_poss= [1, 2, 3, 4, 5]
-    num_epochs = 100
+    num_epochs = 2000
 
 
     # grid search of parameters
@@ -162,19 +163,17 @@ for idx, dataset in enumerate(sorted(os.listdir(datadir))):
                     global_best_lr = lr
                     global_best_batch_norm = batch_norm
                     global_best_num_layers = num_layers
+                    global_best_model = model
 
-                    save_nn_checkpoint(f"nn/results/dataset_{dataset}/model_weights/lr_{lr}_batch_norm_{batch_norm}_num_layers_{num_layers}.pth", model)
                 wandb.finish()
 
-    best_model = NN(global_best_num_layers, d, 512, c, global_best_batch_norm)
-    ckpt_path = f"nn/results/dataset_{dataset}/model_weights/lr_{global_best_lr}_batch_norm_{global_best_batch_norm}_num_layers_{global_best_num_layers}.pth"
-    load_nn_checkpoint(ckpt_path, best_model)
+    save_nn_checkpoint(f"nn/results/dataset_{dataset}/model_weights/lr_{global_best_lr}_batch_norm_{global_best_batch_norm}_num_layers_{global_best_num_layers}.pth", global_best_model)
 
-    layer_1_weights = best_model.model[0].weight.detach().numpy()
+    layer_1_weights = global_best_model.model[0].weight.detach().numpy()
     nfm = compute_nfm(layer_1_weights)
     print(f"NFM: {nfm}")
     print(f"NFM shape: {nfm.shape}")
-    agop = compute_agop(best_model, X_val)
+    agop = compute_agop(global_best_model, X_val)
     print(f"AGOP: {agop}")
     print(f"AGOP shape: {agop.shape}")
 

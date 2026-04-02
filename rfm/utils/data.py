@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import torch
 
 from typing import Any
@@ -18,15 +16,7 @@ def load_metadata(dataset_dir: str | Path, dataset_name: str) -> dict[str, str]:
     return meta
 
 def is_binary_dataset(dataset_dir: str | Path, dataset_name: str, max_tot: int) -> bool:
-    """
-    Apply the same filtering logic as the existing code.
-
-    Conditions:
-        - metadata file exists
-        - binary classification only
-        - n_tot <= max_tot
-        - no explicit held-out external test split
-    """
+    """Apply the same binary-dataset filtering logic."""
     dataset_dir = Path(dataset_dir)
     meta_path = dataset_dir / dataset_name / f"{dataset_name}.txt"
     if not meta_path.is_file():
@@ -58,13 +48,7 @@ def load_arff_data(
     dataset_name: str,
     dtype: torch.dtype,
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    """
-    Load ARFF file.
-
-    Returns:
-        X: (n, d)
-        y: (n,)
-    """
+    """Load ARFF file."""
     dataset_dir = Path(dataset_dir)
     arff_path = dataset_dir / dataset_name / f"{dataset_name}.arff"
 
@@ -100,12 +84,7 @@ def load_validation_split(dataset_dir: str | Path, dataset_name: str) -> tuple[l
     return train_idx, val_idx
 
 def load_kfold_splits(dataset_dir: str | Path, dataset_name: str) -> list[tuple[list[int], list[int]]]:
-    """
-    Load 4-fold train/test splits from conxuntos_kfold.dat.
-
-    Returns:
-        [(train_idx, test_idx), ...]
-    """
+    """Load 4-fold train/test splits from conxuntos_kfold.dat."""
     dataset_dir = Path(dataset_dir)
     split_path = dataset_dir / dataset_name / "conxuntos_kfold.dat"
 

@@ -1,29 +1,25 @@
+# rfm/models/svm.py
 import torch
 
 from sklearn.svm import SVC
 
-from rfm.models.ntk import ntk_kernel_matrix
+from rfm.models.kernels import kernel_matrix
+
 
 def fit_precomputed_binary_svm(
     Z_train: torch.Tensor,
     y_train: torch.Tensor,
-    num_layers: int,
-    num_fixed_layers: int,
+    kernel_name: str,
+    kernel_params: dict[str, float | int],
     c_value: float,
     eps: float,
 ) -> SVC:
-    """
-    Fit a binary C-SVM using the NTK Gram matrix on transformed features.
-
-    Args:
-        Z_train: transformed inputs, shape (n_train, d)
-        y_train: binary labels, shape (n_train,)
-    """
-    K_train = ntk_kernel_matrix(
+    """Fit a binary C-SVM using a precomputed Gram matrix."""
+    K_train = kernel_matrix(
+        kernel_name=kernel_name,
         X1=Z_train,
         X2=Z_train,
-        num_layers=num_layers,
-        num_fixed_layers=num_fixed_layers,
+        params=kernel_params,
         eps=eps,
     )
 

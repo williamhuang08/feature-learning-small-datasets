@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import yaml
 import json
 import torch
@@ -61,12 +59,29 @@ def accuracy_score(y_true: torch.Tensor, y_pred: torch.Tensor) -> float:
 
 def matrix_sqrt_psd(matrix: torch.Tensor, eps: float) -> torch.Tensor:
     """
-    Symmetric PSD square root via eigen-decomposition.
+    Symmetric PSD square root via a stabilized eigen-decomposition.
 
     Args:
-        matrix: (d, d) symmetric PSD matrix
+        matrix: (d, d) nominally symmetric PSD matrix
     """
-    evals, evecs = torch.linalg.eigh(matrix)
-    evals = torch.clamp(evals, min=0.0)
-    sqrt_evals = torch.sqrt(evals + eps)
-    return (evecs * sqrt_evals.unsqueeze(0)) @ evecs.transpose(0, 1)
+    matrix = 0.5 * (matrix + matrix.transpose(0, 1))
+
+    orig_dtype = matrix.dtype
+    matrix64 = matrix.to(torch.float64)
+
+    d = matrix64.shape[0]
+    jitter = eps
+    eye = torch.eye(d, dtype=matrix64.dtype, device=matrix64.device)
+
+    for _ in range(6):
+        try:
+            evals, evecs = torch.linalg.eigh(matrix64 + jitter * eye)
+            evals = torch.clamp(evals, min=0.0)
+            sqrt_evals = torch.sqrt(evals)
+            sqrt_matrix = (evecs * sqrt_evals.unsqueeze(0)) @ evecs.transpose(0, 1)
+            sqrt_matrix = 0.5 * (sqrt_matrix + sqrt_matrix.transpose(0, 1))
+            return sqrt_matrix.to(orig_dtype)
+        except torch._C._LinAlgError:
+            jitter *= 10.0
+
+    raise RuntimeError("matrix_sqrt_psd failed even after diagonal jitter.")

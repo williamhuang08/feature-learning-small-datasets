@@ -1,6 +1,6 @@
 import torch
 
-from rfm.models.ntk import ntk_kernel_matrix
+from rfm.models.kernels import kernel_matrix
 from rfm.utils.utils import matrix_sqrt_psd
 
 def decision_function_from_original_inputs(
@@ -9,33 +9,26 @@ def decision_function_from_original_inputs(
     dual_coef: torch.Tensor,
     intercept: torch.Tensor,
     M: torch.Tensor,
-    num_layers: int,
-    num_fixed_layers: int,
+    kernel_name: str,
+    kernel_params: dict[str, float | int],
     eps: float,
 ) -> torch.Tensor:
     """
     Binary kernel SVM decision function evaluated at original input x.
 
-    The classifier itself is trained on transformed features z = x M^{1/2},
+    The classifier is trained on transformed features z = x M^{1/2},
     but the gradient is taken with respect to the original input x.
-
-    Args:
-        x_orig: (d,)
-        support_x_orig: (n_support, d)
-        dual_coef: (n_support,) signed dual coefficients from binary SVM
-        intercept: scalar tensor
-        M: (d, d) current RFM matrix
     """
     M_sqrt = matrix_sqrt_psd(M, eps)
 
     z = x_orig.unsqueeze(0) @ M_sqrt
     support_z = support_x_orig @ M_sqrt
 
-    k_row = ntk_kernel_matrix(
+    k_row = kernel_matrix(
+        kernel_name=kernel_name,
         X1=z,
         X2=support_z,
-        num_layers=num_layers,
-        num_fixed_layers=num_fixed_layers,
+        params=kernel_params,
         eps=eps,
     ).squeeze(0)
 
@@ -47,8 +40,8 @@ def compute_agop_matrix(
     dual_coef: torch.Tensor,
     intercept: torch.Tensor,
     M: torch.Tensor,
-    num_layers: int,
-    num_fixed_layers: int,
+    kernel_name: str,
+    kernel_params: dict[str, float | int],
     eps: float,
 ) -> torch.Tensor:
     """
@@ -57,8 +50,7 @@ def compute_agop_matrix(
 
     Gradients are taken with respect to the original inputs.
 
-    The result is symmetrized, sanitized, and normalized:
-        M_star = M_star / (M_star.max() + eps)
+    The result is normalized by max entry magnitude.
     """
     d = reference_x_orig.shape[1]
     M_star = torch.zeros((d, d), dtype=reference_x_orig.dtype, device=reference_x_orig.device)
@@ -72,8 +64,8 @@ def compute_agop_matrix(
             dual_coef=dual_coef,
             intercept=intercept,
             M=M,
-            num_layers=num_layers,
-            num_fixed_layers=num_fixed_layers,
+            kernel_name=kernel_name,
+            kernel_params=kernel_params,
             eps=eps,
         )
 

@@ -1,3 +1,4 @@
+# rfm/models/model.py
 import torch
 
 from tqdm import tqdm
@@ -6,41 +7,40 @@ from itertools import product
 from dataclasses import dataclass
 
 from rfm.models.agop import compute_agop_matrix
-from rfm.models.ntk import ntk_kernel_matrix
+from rfm.models.kernels import kernel_matrix
 from rfm.models.svm import fit_precomputed_binary_svm
 from rfm.utils.utils import accuracy_score, matrix_sqrt_psd, tensor_device, tensor_dtype
 
 @dataclass
 class SearchResult:
     """One hyperparameter search result."""
+    kernel: str
     num_iters: int
-    num_layers: int
-    num_fixed_layers: int
+    kernel_params: dict[str, float | int]
     c_value: float
     val_accuracy: float
 
 class RFM:
     """
-    Recursive Feature Machine with infinite-width ReLU NTK and binary C-SVM.
+    Recursive Feature Machine with selectable kernel and binary C-SVM.
 
-    This class keeps only the minimal fitted state required during the current run.
-    The intended persistent artifact is the final matrix M, not the full classifier.
+    The persistent artifact is the final matrix M, not the full classifier.
     """
 
     def __init__(
         self,
         config: dict[str, Any],
         input_dim: int,
+        kernel_name: str,
         num_iters: int,
-        num_layers: int,
-        num_fixed_layers: int,
+        kernel_params: dict[str, float | int],
         c_value: float,
     ) -> None:
         self.config = config
         self.input_dim = input_dim
+        self.kernel_name = kernel_name
         self.num_iters = num_iters
-        self.num_layers = num_layers
-        self.num_fixed_layers = num_fixed_layers
+        self.kernel_params = kernel_params
         self.c_value = c_value
 
         self.dtype = tensor_dtype(config)
@@ -49,7 +49,6 @@ class RFM:
 
         self.M = torch.eye(input_dim, dtype=self.dtype, device=self.device)
 
-        # Minimal fitted classifier state needed for prediction and AGOP.
         self.classes_: torch.Tensor | None = None
         self.support_x_orig: torch.Tensor | None = None
         self.dual_coef: torch.Tensor | None = None
@@ -61,12 +60,12 @@ class RFM:
         return X_orig @ M_sqrt
 
     def fit_svm(self, Z_train: torch.Tensor, y_train: torch.Tensor):
-        """Fit binary C-SVM with the precomputed NTK Gram matrix."""
+        """Fit binary C-SVM with the selected precomputed Gram matrix."""
         return fit_precomputed_binary_svm(
             Z_train=Z_train,
             y_train=y_train,
-            num_layers=self.num_layers,
-            num_fixed_layers=self.num_fixed_layers,
+            kernel_name=self.kernel_name,
+            kernel_params=self.kernel_params,
             c_value=self.c_value,
             eps=self.eps,
         )
@@ -88,11 +87,11 @@ class RFM:
         Z = self.transform(X_orig)
         support_Z = self.transform(self.support_x_orig)
 
-        K = ntk_kernel_matrix(
+        K = kernel_matrix(
+            kernel_name=self.kernel_name,
             X1=Z,
             X2=support_Z,
-            num_layers=self.num_layers,
-            num_fixed_layers=self.num_fixed_layers,
+            params=self.kernel_params,
             eps=self.eps,
         )
         return K @ self.dual_coef + self.intercept
@@ -117,13 +116,11 @@ class RFM:
         y_train: torch.Tensor,
     ) -> "RFM":
         """
-        Fit one RFM model with fixed (num_iters, L, L', C).
+        Fit one RFM model with fixed hyperparameters.
 
         Convention:
             - num_iters = 0: fit once with M = I, no AGOP update
             - num_iters = T: perform T AGOP updates total
-
-        AGOP is always averaged over the original training inputs.
         """
         if torch.unique(y_train).numel() != 2:
             raise ValueError("RFM only supports binary classification.")
@@ -144,8 +141,8 @@ class RFM:
                     dual_coef=self.dual_coef,
                     intercept=self.intercept,
                     M=self.M,
-                    num_layers=self.num_layers,
-                    num_fixed_layers=self.num_fixed_layers,
+                    kernel_name=self.kernel_name,
+                    kernel_params=self.kernel_params,
                     eps=self.eps,
                 ).detach()
 
@@ -163,12 +160,10 @@ class RFM:
         Run one RFM trajectory up to max(iter_candidates), evaluate validation
         after each SVM fit, and return the best iteration count from
         iter_candidates together with its validation accuracy.
-
-        This is a search utility only. It does not restore the model to the
-        best iterate after selection.
         """
         if torch.unique(y_train).numel() != 2:
             raise ValueError("RFM only supports binary classification.")
+
         iter_candidates = sorted(set(int(v) for v in iter_candidates))
         if iter_candidates[0] < 0:
             raise ValueError("iter_candidates must be non-negative.")
@@ -204,8 +199,8 @@ class RFM:
                     dual_coef=self.dual_coef,
                     intercept=self.intercept,
                     M=self.M,
-                    num_layers=self.num_layers,
-                    num_fixed_layers=self.num_fixed_layers,
+                    kernel_name=self.kernel_name,
+                    kernel_params=self.kernel_params,
                     eps=self.eps,
                 ).detach()
 
@@ -213,6 +208,57 @@ class RFM:
             raise RuntimeError("Validation search produced no result.")
 
         return best_num_iters, best_val_accuracy
+
+def build_kernel_grid(config: dict[str, Any]) -> list[tuple[dict[str, float | int], float]]:
+    """Build the hyperparameter grid for the selected kernel."""
+    kernel_name = config["kernel"]
+
+    if kernel_name == "gaussian":
+        return [
+            ({"gamma": float(gamma)}, float(c_value))
+            for gamma, c_value in product(config["gamma_list"], config["c_list"])
+        ]
+
+    if kernel_name == "laplace":
+        return [
+            ({"gamma": float(gamma)}, float(c_value))
+            for gamma, c_value in product(config["gamma_list"], config["c_list"])
+        ]
+
+    if kernel_name == "polynomial":
+        return [
+            (
+                {
+                    "degree": int(degree),
+                    "gamma": float(gamma),
+                    "coef0": float(coef0),
+                },
+                float(c_value),
+            )
+            for degree, gamma, coef0, c_value in product(
+                config["degree_list"],
+                config["gamma_list"],
+                config["coef0_list"],
+                config["c_list"],
+            )
+        ]
+
+    if kernel_name == "ntk":
+        grid: list[tuple[dict[str, float | int], float]] = []
+        for num_layers, c_value in product(config["layer_list"], config["c_list"]):
+            for num_fixed_layers in range(int(num_layers)):
+                grid.append(
+                    (
+                        {
+                            "num_layers": int(num_layers),
+                            "num_fixed_layers": int(num_fixed_layers),
+                        },
+                        float(c_value),
+                    )
+                )
+        return grid
+
+    raise ValueError(f"Unsupported kernel: {kernel_name}")
 
 def grid_search_rfm(
     config: dict[str, Any],
@@ -222,36 +268,26 @@ def grid_search_rfm(
     y_val: torch.Tensor,
 ) -> SearchResult:
     """
-    Grid search over:
-        L in config["layer_list"]
-        L' in {0, ..., L - 1}
-        C in config["c_list"]
+    Grid search over the selected kernel hyperparameters and C.
 
-    For each fixed (L, L', C), run one trajectory up to max(iter_list),
-    evaluate validation after each step, and pick the best iteration count
-    from iter_list.
+    For each fixed kernel configuration and C, run one trajectory up to
+    max(iter_list), evaluate validation after each step, and pick the best
+    iteration count from iter_list.
     """
     input_dim = X_train_orig.shape[1]
     best_result: SearchResult | None = None
+    kernel_name = config["kernel"]
     iter_candidates = [int(v) for v in config["iter_list"]]
     max_iters = max(iter_candidates)
+    grid = build_kernel_grid(config)
 
-    grid = []
-    for num_layers, c_value in product(config["layer_list"], config["c_list"]):
-        for num_fixed_layers in range(num_layers):
-            grid.append((num_layers, num_fixed_layers, c_value))
-
-    for num_layers, num_fixed_layers, c_value in tqdm(
-        grid,
-        total=len(grid),
-        desc="Gridsearch",
-    ):
+    for kernel_params, c_value in tqdm(grid, total=len(grid), desc="Gridsearch"):
         model = RFM(
             config=config,
             input_dim=input_dim,
+            kernel_name=kernel_name,
             num_iters=max_iters,
-            num_layers=num_layers,
-            num_fixed_layers=num_fixed_layers,
+            kernel_params=kernel_params,
             c_value=float(c_value),
         )
 
@@ -265,9 +301,9 @@ def grid_search_rfm(
 
         if best_result is None or val_acc > best_result.val_accuracy:
             best_result = SearchResult(
+                kernel=kernel_name,
                 num_iters=best_num_iters,
-                num_layers=num_layers,
-                num_fixed_layers=num_fixed_layers,
+                kernel_params=kernel_params,
                 c_value=float(c_value),
                 val_accuracy=float(val_acc),
             )

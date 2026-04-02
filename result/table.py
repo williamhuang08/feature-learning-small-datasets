@@ -7,8 +7,12 @@ from pathlib import Path
 from rfm.utils.utils import ensure_dir, save_json
 
 CLASSIFIER_DIRS: dict[str, str] = {
-    "NTK": "../ntk/results",
-    "RFM": "../rfm/results",
+    "LAPLACE": "../kernel/results/laplace",
+    "LAPLACE-RFM": "../rfm/results/laplace",
+    "GAUSSIAN": "../kernel/results/gaussian",
+    "GAUSSIAN-RFM": "../rfm/results/gaussian",
+    "NTK": "../kernel/results/ntk",
+    "NTK-RFM": "../rfm/results/ntk",
     "NN": "../nn_jf/results",
 }
 

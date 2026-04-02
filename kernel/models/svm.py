@@ -2,24 +2,22 @@ import torch
 
 from sklearn.svm import SVC
 
-from ntk.models.ntk import ntk_kernel_matrix
+from kernel.models.kernels import kernel_matrix
 
 def fit_precomputed_binary_svm(
     X_train: torch.Tensor,
     y_train: torch.Tensor,
-    num_layers: int,
-    num_fixed_layers: int,
+    kernel_name: str,
+    kernel_params: dict[str, float | int],
     c_value: float,
     eps: float,
 ) -> SVC:
-    """
-    Fit a binary C-SVM using the NTK Gram matrix.
-    """
-    K_train = ntk_kernel_matrix(
+    """Fit a binary C-SVM using a precomputed Gram matrix."""
+    K_train = kernel_matrix(
+        kernel_name=kernel_name,
         X1=X_train,
         X2=X_train,
-        num_layers=num_layers,
-        num_fixed_layers=num_fixed_layers,
+        params=kernel_params,
         eps=eps,
     )
 

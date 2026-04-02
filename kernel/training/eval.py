@@ -1,12 +1,10 @@
-import torch
-
 from pathlib import Path
 
-from rfm.models.model import RFM
-from rfm.utils.utils import load_config, save_json, save_torch, tensor_dtype
-from rfm.utils.data import list_binary_datasets, load_arff_data, load_kfold_splits, subset_dataset
+from kernel.models.model import KernelSVM
+from kernel.utils.utils import load_config, save_json, tensor_dtype
+from kernel.utils.data import list_binary_datasets, load_arff_data, load_kfold_splits, subset_dataset
 
-CONFIG_PATH = "rfm.yml"
+CONFIG_PATH = "kernel.yml"
 
 def result_root(config: dict) -> Path:
     """Return the kernel-specific result root."""
@@ -19,6 +17,7 @@ def load_best_params(path: str | Path) -> dict:
     with open(path, "r") as f:
         return json.load(f)
 
+# kernel/eval.py
 def extract_kernel_params(best_params: dict) -> dict[str, float | int]:
     """Extract kernel-specific parameters from saved best_params."""
     kernel_name = best_params["kernel"]
@@ -45,11 +44,7 @@ def extract_kernel_params(best_params: dict) -> dict[str, float | int]:
     raise ValueError(f"Unsupported kernel: {kernel_name}")
 
 def evaluate_one_dataset(config: dict, dataset_name: str) -> None:
-    """
-    Run 4-fold evaluation and save only:
-        - dataset-level average test accuracy
-        - dataset-level average final M
-    """
+    """Run 4-fold evaluation and save only the dataset-level average test accuracy."""
     dtype = tensor_dtype(config)
     dataset_result_dir = result_root(config) / dataset_name
     best_params = load_best_params(dataset_result_dir / "best_params.json")
@@ -62,32 +57,25 @@ def evaluate_one_dataset(config: dict, dataset_name: str) -> None:
     folds = load_kfold_splits(config["data_dir"], dataset_name)
 
     test_accuracies: list[float] = []
-    final_ms: list[torch.Tensor] = []
 
     for fold_id, (train_idx, test_idx) in enumerate(folds):
         X_train, y_train = subset_dataset(X, y, train_idx)
         X_test, y_test = subset_dataset(X, y, test_idx)
 
-        model = RFM(
+        model = KernelSVM(
             config=config,
             input_dim=X.shape[1],
             kernel_name=str(best_params["kernel"]),
-            num_iters=int(best_params["num_iters"]),
             kernel_params=extract_kernel_params(best_params),
             c_value=float(best_params["c_value"]),
         )
-        model.fit(
-            X_train_orig=X_train,
-            y_train=y_train,
-        )
+        model.fit(X_train=X_train, y_train=y_train)
 
         test_acc = model.score(
             X_test.to(model.device, dtype=model.dtype),
             y_test.to(model.device),
         )
-
         test_accuracies.append(float(test_acc))
-        final_ms.append(model.M.detach().cpu())
 
         print(
             f"[eval] kernel={config['kernel']} "
@@ -97,7 +85,6 @@ def evaluate_one_dataset(config: dict, dataset_name: str) -> None:
         )
 
     avg_test_acc = sum(test_accuracies) / len(test_accuracies)
-    avg_final_m = torch.stack(final_ms, dim=0).mean(dim=0)
 
     save_json(
         dataset_result_dir / "eval_summary.json",
@@ -105,12 +92,6 @@ def evaluate_one_dataset(config: dict, dataset_name: str) -> None:
             "dataset_name": dataset_name,
             "kernel": config["kernel"],
             "avg_test_accuracy": avg_test_acc,
-        },
-    )
-    save_torch(
-        dataset_result_dir / "avg_final_M.pt",
-        {
-            "M": avg_final_m,
         },
     )
 

@@ -1,14 +1,24 @@
-# rfm.yml
-
+# rfm/rfm.yml
 dtype: "float32"
 device: "cuda"
+
+kernel: "laplace"
 
 # Outer RFM iterations.
 iter_list: [1, 2, 3, 4, 5]
 
-# NTK / SVM hyperparameters.
-layer_list: [1, 2, 3, 4, 5]
+# Shared SVM hyperparameters.
 c_list: [0.01, 0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0]
+
+# Gaussian / laplace / polynomial kernel hyperparameters.
+gamma_list: [0.001, 0.01, 0.1, 1.0, 10.0]
+
+# Polynomial kernel hyperparameters.
+degree_list: [2, 3, 4]
+coef0_list: [0.0, 1.0]
+
+# NTK hyperparameters.
+layer_list: [1, 2, 3, 4, 5]
 
 # Data filtering.
 data_dir: "../../../../data"
@@ -19,6 +29,4 @@ save_dir: "../results"
 
 # Numerical stabilization.
 eps: 1.0e-12
-
-# Eval.py uses conxuntos_kfold.dat for final reported test accuracy.
 num_kfold_repeats: 4

@@ -1,0 +1,24 @@
+# rfm.yml
+
+dtype: "float32"
+device: "cuda"
+
+# Outer RFM iterations.
+iter_list: [1, 2, 3, 4, 5]
+
+# NTK / SVM hyperparameters.
+layer_list: [1, 2, 3, 4, 5]
+c_list: [0.01, 0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0]
+
+# Data filtering.
+data_dir: "../../../../data"
+max_tot: 1000
+
+# Storage.
+save_dir: "../results"
+
+# Numerical stabilization.
+eps: 1.0e-12
+
+# Eval.py uses conxuntos_kfold.dat for final reported test accuracy.
+num_kfold_repeats: 4

@@ -1,0 +1,234 @@
+{
+  "classifiers": {
+    "NN": {
+      "average_accuracy_mean": 0.8228854537010193,
+      "average_accuracy_std": 0.11410053903142525,
+      "friedman_rank": 2.5,
+      "p90": 0.9393939393939394,
+      "p95": 0.6666666666666666,
+      "pma_mean": 96.5264022337392,
+      "pma_std": 3.695001481602964
+    },
+    "NTK": {
+      "average_accuracy_mean": 0.8471828401088715,
+      "average_accuracy_std": 0.09789757565349382,
+      "friedman_rank": 1.5,
+      "p90": 1.0,
+      "p95": 1.0,
+      "pma_mean": 99.6167113231638,
+      "pma_std": 0.8777729301686119
+    },
+    "RFM": {
+      "average_accuracy_mean": 0.822068886774959,
+      "average_accuracy_std": 0.11048958585994594,
+      "friedman_rank": 2.0,
+      "p90": 0.9393939393939394,
+      "p95": 0.8181818181818182,
+      "pma_mean": 96.80942718786396,
+      "pma_std": 8.03913124334358
+    }
+  },
+  "dataset_names": [
+    "acute-inflammation",
+    "acute-nephritis",
+    "balloons",
+    "blood",
+    "breast-cancer",
+    "breast-cancer-wisc",
+    "breast-cancer-wisc-diag",
+    "breast-cancer-wisc-prog",
+    "congressional-voting",
+    "conn-bench-sonar-mines-rocks",
+    "credit-approval",
+    "cylinder-bands",
+    "echocardiogram",
+    "fertility",
+    "haberman-survival",
+    "heart-hungarian",
+    "hepatitis",
+    "ilpd-indian-liver",
+    "ionosphere",
+    "mammographic",
+    "molec-biol-promoter",
+    "musk-1",
+    "oocytes_trisopterus_nucleus_2f",
+    "parkinsons",
+    "pima",
+    "pittsburg-bridges-T-OR-D",
+    "planning",
+    "statlog-australian-credit",
+    "statlog-german-credit",
+    "statlog-heart",
+    "tic-tac-toe",
+    "trains",
+    "vertebral-column-2clases"
+  ],
+  "num_datasets": 33,
+  "per_dataset": {
+    "acute-inflammation": {
+      "NN": 1.0,
+      "NTK": 1.0,
+      "RFM": 1.0
+    },
+    "acute-nephritis": {
+      "NN": 1.0,
+      "NTK": 1.0,
+      "RFM": 1.0
+    },
+    "balloons": {
+      "NN": 0.9375,
+      "NTK": 1.0,
+      "RFM": 0.8125
+    },
+    "blood": {
+      "NN": 0.73128342628479,
+      "NTK": 0.7927807718515396,
+      "RFM": 0.8021390438079834
+    },
+    "breast-cancer": {
+      "NN": 0.6830985695123672,
+      "NTK": 0.73591548204422,
+      "RFM": 0.732394352555275
+    },
+    "breast-cancer-wisc": {
+      "NN": 0.9571428596973419,
+      "NTK": 0.9728571325540543,
+      "RFM": 0.9699999988079071
+    },
+    "breast-cancer-wisc-diag": {
+      "NN": 0.9718309640884399,
+      "NTK": 0.9683098345994949,
+      "RFM": 0.9735915064811707
+    },
+    "breast-cancer-wisc-prog": {
+      "NN": 0.7704081535339355,
+      "NTK": 0.8061224222183228,
+      "RFM": 0.7806122303009033
+    },
+    "congressional-voting": {
+      "NN": 0.60550457239151,
+      "NTK": 0.6192660182714462,
+      "RFM": 0.6192660182714462
+    },
+    "conn-bench-sonar-mines-rocks": {
+      "NN": 0.8653846383094788,
+      "NTK": 0.8509615659713745,
+      "RFM": 0.817307710647583
+    },
+    "credit-approval": {
+      "NN": 0.8488371968269348,
+      "NTK": 0.864825576543808,
+      "RFM": 0.8619185984134674
+    },
+    "cylinder-bands": {
+      "NN": 0.77734375,
+      "NTK": 0.783203125,
+      "RFM": 0.76953125
+    },
+    "echocardiogram": {
+      "NN": 0.8257576078176498,
+      "NTK": 0.8560606241226196,
+      "RFM": 0.7803030461072922
+    },
+    "fertility": {
+      "NN": 0.8799999803304672,
+      "NTK": 0.8799999952316284,
+      "RFM": 0.8999999761581421
+    },
+    "haberman-survival": {
+      "NN": 0.7302631586790085,
+      "NTK": 0.7368420958518982,
+      "RFM": 0.7368420958518982
+    },
+    "heart-hungarian": {
+      "NN": 0.8116438239812851,
+      "NTK": 0.8595890253782272,
+      "RFM": 0.8356164395809174
+    },
+    "hepatitis": {
+      "NN": 0.801282063126564,
+      "NTK": 0.8205128312110901,
+      "RFM": 0.8141025751829147
+    },
+    "ilpd-indian-liver": {
+      "NN": 0.6986301392316818,
+      "NTK": 0.7277397215366364,
+      "RFM": 0.7208904027938843
+    },
+    "ionosphere": {
+      "NN": 0.9403409361839294,
+      "NTK": 0.9488636702299118,
+      "RFM": 0.9119318276643753
+    },
+    "mammographic": {
+      "NN": 0.7645833790302277,
+      "NTK": 0.8093750476837158,
+      "RFM": 0.8000000566244125
+    },
+    "molec-biol-promoter": {
+      "NN": 0.884615421295166,
+      "NTK": 0.8846154063940048,
+      "RFM": 0.8365384787321091
+    },
+    "musk-1": {
+      "NN": 0.9138656109571457,
+      "NTK": 0.8781513273715973,
+      "RFM": 0.901260569691658
+    },
+    "oocytes_trisopterus_nucleus_2f": {
+      "NN": 0.8552631586790085,
+      "NTK": 0.8662280887365341,
+      "RFM": 0.8146930038928986
+    },
+    "parkinsons": {
+      "NN": 0.9132652878761292,
+      "NTK": 0.9183673411607742,
+      "RFM": 0.9132652878761292
+    },
+    "pima": {
+      "NN": 0.7031250149011612,
+      "NTK": 0.755208358168602,
+      "RFM": 0.7695312649011612
+    },
+    "pittsburg-bridges-T-OR-D": {
+      "NN": 0.8399999737739563,
+      "NTK": 0.8399999737739563,
+      "RFM": 0.8499999791383743
+    },
+    "planning": {
+      "NN": 0.6111111342906952,
+      "NTK": 0.7111111283302307,
+      "RFM": 0.7111111283302307
+    },
+    "statlog-australian-credit": {
+      "NN": 0.5959302335977554,
+      "NTK": 0.680232584476471,
+      "RFM": 0.680232584476471
+    },
+    "statlog-german-credit": {
+      "NN": 0.7290000468492508,
+      "NTK": 0.7760000228881836,
+      "RFM": 0.7760000228881836
+    },
+    "statlog-heart": {
+      "NN": 0.8320895284414291,
+      "NTK": 0.8805969953536987,
+      "RFM": 0.8805969804525375
+    },
+    "tic-tac-toe": {
+      "NN": 0.9926777929067612,
+      "NTK": 0.9979079365730286,
+      "RFM": 0.9989539682865143
+    },
+    "trains": {
+      "NN": 0.875,
+      "NTK": 0.875,
+      "RFM": 0.5
+    },
+    "vertebral-column-2clases": {
+      "NN": 0.808441549539566,
+      "NTK": 0.8603896200656891,
+      "RFM": 0.8571428656578064
+    }
+  }
+}

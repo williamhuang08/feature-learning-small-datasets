@@ -1,0 +1,12 @@
+dtype: "float32"
+device: "cuda"
+
+layer_list: [1, 2, 3, 4, 5]
+c_list: [0.01, 0.1, 1.0, 10.0, 100.0, 1000.0, 10000.0]
+
+data_dir: "../../../../data"
+max_tot: 1000
+save_dir: "../results"
+
+eps: 1.0e-12
+num_kfold_repeats: 4
